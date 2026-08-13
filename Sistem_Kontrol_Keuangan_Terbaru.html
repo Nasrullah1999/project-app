@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Kontrol Keuangan & Agen Pulsa</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- SheetJS (xlsx.full.min.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .form-penjualan { background-color: #000000; color: #ffffff; }
+        .form-debit-kredit { background-color: #d1fae5; color: #065f46; }
+        .form-utang { background-color: #ef4444; color: #ffffff; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+
+    <!-- ================= LOGIN PAGE ================= -->
+    <div id="loginPage" class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl border border-gray-700 w-full max-w-md text-center">
+            <div class="bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <i class="fa-solid fa-calculator text-white text-3xl"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-white tracking-wide">Sistem Kontrol Toko & Agen</h1>
+            <p class="text-gray-400 text-sm mt-1 mb-6">Masukkan password untuk masuk ke dashboard</p>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="mb-5 text-left">
+                    <label for="password" class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                            <i class="fa-solid fa-lock"></i>
+                        </span>
+                        <input type="password" id="password" required
+                            class="w-full bg-gray-900 text-white pl-10 pr-4 py-3 rounded-xl border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                            placeholder="••••••••">
+                    </div>
+                    <p id="loginError" class="text-red-400 text-xs mt-2 hidden"><i class="fa-solid fa-circle-exclamation mr-1"></i> Password salah! Gunakan '123'</p>
+                </div>
+                
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl transition shadow-lg">
+                    <i class="fa-solid fa-right-to-bracket mr-2"></i> Masuk Ke Dashboard
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= LANDING PAGE & DASHBOARD (SHEET 1) ================= -->
+    <div id="landingPage" class="hidden min-h-screen flex flex-col">
+        <!-- Top Navbar -->
+        <header class="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between shadow-md">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-chart-line text-blue-500 text-2xl"></i>
+                <h2 class="text-xl font-bold text-white tracking-wide">Sheet 1: Kontrol Utama Dashboard</h2>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-xl transition shadow flex items-center text-sm">
+                    <i class="fa-solid fa-file-excel mr-2"></i> Ekspor File Excel Resmi (.xlsx)
+                </button>
+                <button onclick="handleLogout()" class="bg-gray-700 hover:bg-gray-600 text-gray-300 font-medium py-2 px-3 rounded-xl transition text-sm">
+                    <i class="fa-solid fa-power-off"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 p-6 max-w-7xl w-full mx-auto space-y-8">
+            
+            <!-- SUMMARY CARDS (LIVE CALCULATIONS FROM SHEETS) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700 shadow-sm">
+                    <p class="text-gray-400 text-xs font-semibold uppercase">Total Keuntungan Penjualan</p>
+                    <h3 id="cardKeuntungan" class="text-2xl font-bold text-emerald-400 mt-2">Rp0</h3>
+                </div>
+                <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700 shadow-sm">
+                    <p class="text-gray-400 text-xs font-semibold uppercase">Total Jumlah Keuangan</p>
+                    <h3 id="cardKeuangan" class="text-2xl font-bold text-blue-400 mt-2">Rp0</h3>
+                </div>
+                <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700 shadow-sm">
+                    <p class="text-gray-400 text-xs font-semibold uppercase">Total Piutang Belum Lunas</p>
+                    <h3 id="cardUtang" class="text-2xl font-bold text-red-400 mt-2">Rp0</h3>
+                </div>
+            </div>
+
+            <!-- FORMS CONTAINER -->
+            <div>
+                <h3 class="text-lg font-bold text-white mb-4"><i class="fa-solid fa-keyboard mr-2 text-blue-500"></i>Pencatatan Data Baru</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                    
+                    <!-- FORM SHEET 2: PENJUALAN -->
+                    <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700 shadow-lg space-y-4">
+                        <span class="text-xs font-bold uppercase tracking-wider text-gray-300">Form Input Sheet 2 (Penjualan)</span>
+                        <div class="rounded-xl p-4 form-penjualan space-y-3 shadow-inner">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-1">Tanggal</label>
+                                <input type="date" id="s2_tanggal" class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-white outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-1">Nama Pelanggan</label>
+                                <input type="text" id="s2_nama" placeholder="Nama..." class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-white outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-1">No. HP / No. Meteran / ID</label>
+                                <input type="text" id="s2_id" placeholder="ID/No..." class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-white outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-1">Jenis Transaksi</label>
+                                <input type="text" id="s2_jenis" placeholder="Pulsa/Token/dll..." class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-white outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-1">Harga Jual</label>
+                                <input type="number" id="s2_harga" placeholder="0" class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-white outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-1">Untung yg Didapat</label>
+                                <input type="number" id="s2_untung" placeholder="0" class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-white outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-1">Saldo Awal</label>
+                                <input type="number" id="s2_saldoawal" placeholder="0" class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-white outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-1">Keterangan Status</label>
+                                <select id="s2_ket" class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-white outline-none cursor-pointer">
+                                    <option value="Lunas">Lunas</option>
+                                    <option value="Belum Lunas">Belum Lunas</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button onclick="addDataPenjualan()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition uppercase text-sm tracking-wider">
+                            Catat Transaksi
+                        </button>
+                    </div>
+
+                    <!-- FORM SHEET 3: DEBIT_KREDIT -->
+                    <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700 shadow-lg space-y-4">
+                        <span class="text-xs font-bold uppercase tracking-wider text-gray-300">Form Input Sheet 3 (Debit_Kredit)</span>
+                        <div class="rounded-xl p-4 form-debit-kredit space-y-3 shadow-inner">
+                            <div>
+                                <label class="block text-xs font-bold text-emerald-800 mb-1">Tanggal</label>
+                                <input type="date" id="s3_tanggal" class="w-full bg-white border border-emerald-300 rounded px-2 py-1 text-sm text-gray-900 outline-none">
+                            </div>
+                            <div class="border-t border-emerald-200 pt-2">
+                                <span class="text-xs font-bold text-emerald-900 block mb-1">Uang Pegangan (Fisik)</span>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <input type="number" id="s3_up_kurang" placeholder="Pengurangan" class="bg-white border border-emerald-300 rounded px-2 py-1 text-xs outline-none text-gray-900">
+                                    <input type="number" id="s3_up_tambah" placeholder="Penambahan" class="bg-white border border-emerald-300 rounded px-2 py-1 text-xs outline-none text-gray-900">
+                                </div>
+                            </div>
+                            <div class="border-t border-emerald-200 pt-2">
+                                <span class="text-xs font-bold text-emerald-900 block mb-1">Saldo AgenPulsa</span>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <input type="number" id="s3_ap_kurang" placeholder="Debet (-)" class="bg-white border border-emerald-300 rounded px-2 py-1 text-xs outline-none text-gray-900">
+                                    <input type="number" id="s3_ap_tambah" placeholder="Kredit (+)" class="bg-white border border-emerald-300 rounded px-2 py-1 text-xs outline-none text-gray-900">
+                                </div>
+                            </div>
+                            <div class="border-t border-emerald-200 pt-2">
+                                <span class="text-xs font-bold text-emerald-900 block mb-1">Saldo Rekening BRI</span>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <input type="number" id="s3_rk_kurang" placeholder="Debet (-)" class="bg-white border border-emerald-300 rounded px-2 py-1 text-xs outline-none text-gray-900">
+                                    <input type="number" id="s3_rk_tambah" placeholder="Kredit (+)" class="bg-white border border-emerald-300 rounded px-2 py-1 text-xs outline-none text-gray-900">
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="addDataDebitKredit()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition uppercase text-sm tracking-wider">
+                            Catat Arus Keuangan
+                        </button>
+                    </div>
+
+                    <!-- FORM SHEET 4: DAFTAR_UTANG -->
+                    <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700 shadow-lg space-y-4">
+                        <span class="text-xs font-bold uppercase tracking-wider text-gray-300">Form Input Sheet 4 (Daftar_Utang)</span>
+                        <div class="rounded-xl p-4 form-utang space-y-3 shadow-inner">
+                            <div>
+                                <label class="block text-xs font-bold text-red-100 mb-1">Nama Debitur</label>
+                                <input type="text" id="s4_nama" placeholder="Nama..." class="w-full bg-white rounded px-2 py-1 text-sm text-gray-900 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-red-100 mb-1">Jenis Utang / Produk</label>
+                                <input type="text" id="s4_jenis" placeholder="Keterangan barang/utang..." class="w-full bg-white rounded px-2 py-1 text-sm text-gray-900 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-red-100 mb-1">Harga Nominal</label>
+                                <input type="number" id="s4_harga" placeholder="0" class="w-full bg-white rounded px-2 py-1 text-sm text-gray-900 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-red-100 mb-1">Jumlah Belum Terbayar</label>
+                                <input type="number" id="s4_belumterbayar" placeholder="0" class="w-full bg-white rounded px-2 py-1 text-sm text-gray-900 outline-none">
+                            </div>
+                        </div>
+                        <button onclick="addDataUtangManual()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition uppercase text-sm tracking-wider">
+                            Catat Utang Manual
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- SHEET LIVE WORKBOOK MANAGER (READ, UPDATE, DELETE) -->
+            <div class="bg-gray-800 rounded-2xl p-6 border border-gray-700 shadow-xl">
+                <div class="flex flex-col md:flex-row md:items-center justify-between pb-4 mb-4 border-b border-gray-700 gap-4">
+                    <div>
+                        <h3 class="text-base font-bold text-white flex items-center">
+                            <i class="fa-solid fa-folder-open mr-2 text-blue-500"></i> Manajer Tabel Aktivitas Lembar Kerja Excel
+                        </h3>
+                    </div>
+                    
+                    <!-- Tab Switching -->
+                    <div class="flex bg-gray-950 p-1 rounded-xl border border-gray-700">
+                        <button id="btnTab2" onclick="switchTab(2)" class="px-4 py-1.5 text-xs font-bold rounded-lg transition text-blue-400 bg-gray-800 shadow">PENJUALAN (SHEET 2)</button>
+                        <button id="btnTab3" onclick="switchTab(3)" class="px-4 py-1.5 text-xs font-bold rounded-lg transition text-gray-400 hover:text-white">DEBIT_KREDIT (SHEET 3)</button>
+                        <button id="btnTab4" onclick="switchTab(4)" class="px-4 py-1.5 text-xs font-bold rounded-lg transition text-gray-400 hover:text-white">DAFTAR_UTANG (SHEET 4)</button>
+                    </div>
+                </div>
+
+                <!-- Live Table -->
+                <div class="overflow-x-auto rounded-xl border border-gray-700 max-h-96">
+                    <table class="w-full text-xs text-left text-gray-300">
+                        <thead class="bg-gray-900 text-gray-400 uppercase text-[10px] tracking-wider sticky top-0" id="tableHeader">
+                            <!-- Injected dynamically -->
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-gray-800">
+                            <!-- Injected dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- UPDATE MODAL DIALOG -->
+    <div id="updateModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center p-4 z-50">
+        <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 w-full max-w-md shadow-2xl">
+            <h4 class="text-base font-bold text-white mb-4"><i class="fa-solid fa-pen-to-square text-blue-500 mr-2"></i>Edit Rekaman Data</h4>
+            <div id="modalContainer" class="space-y-4 text-xs"></div>
+            <div class="flex justify-end space-x-2 mt-6">
+                <button onclick="closeModal()" class="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition">Batal</button>
+                <button onclick="saveModalChanges()" class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition">Simpan Perubahan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIC SYSTEM SCRIPT -->
+    <script>
+        let currentTab = 2;
+        let activeEdit = { sheet: null, idx: null };
+
+        // Database internal state mirroring custom exact structural requirements
+        const db = {
+            penjualan: [
+                { no: 1, tanggal: "2026-08-10", nama: "Fajar", id: "0812445566", jenis: "Token PLN", harga: 102000, untung: 2500, ket: "Lunas", saldoawal: 500000 },
+                { no: 2, tanggal: "2026-08-11", nama: "Irfan", id: "0823999111", jenis: "Pulsa Telkomsel", harga: 52000, untung: 2000, ket: "Belum Lunas", saldoawal: 398000 }
+            ],
+            debitKredit: [
+                { no: 1, tanggal: "2026-08-10", up_kurang: 150000, up_tambah: 0, ap_kurang: 100000, ap_tambah: 0, rk_kurang: 0, rk_tambah: 250000 }
+            ],
+            daftarUtang: [
+                { no: 1, nama: "Irfan", jenis: "Pulsa Telkomsel", harga: 52000, belumterbayar: 52000 }
+            ]
+        };
+
+        function formatIDR(v) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v);
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            if(document.getElementById('password').value === '123') {
+                document.getElementById('loginPage').classList.add('hidden');
+                document.getElementById('landingPage').classList.remove('hidden');
+                refreshAll();
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
+
+        function handleLogout() {
+            document.getElementById('password').value = '';
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('landingPage').classList.add('hidden');
+        }
+
+        function switchTab(t) {
+            currentTab = t;
+            [2,3,4].forEach(i => {
+                const b = document.getElementById('btnTab' + i);
+                if(i === t) {
+                    b.className = "px-4 py-1.5 text-xs font-bold rounded-lg transition text-blue-400 bg-gray-800 shadow";
+                } else {
+                    b.className = "px-4 py-1.5 text-xs font-bold rounded-lg transition text-gray-400 hover:text-white";
+                }
+            });
+            renderTable();
+        }
+
+        // Live calculation formulas logic matching image structures
+        function refreshAll() {
+            // Recalculate automatic debt entries from sheet 2 "Belum Lunas"
+            const autoDebts = db.penjualan.filter(x => x.ket === "Belum Lunas").map((x, i) => ({
+                no: i + 1, nama: x.nama, jenis: x.jenis, harga: x.harga, belumterbayar: x.harga
+            }));
+            
+            // Re-render KPI
+            let totalKeuntungan = db.penjualan.reduce((a,b) => a + b.untung, 0);
+            let totalUtang = db.daftarUtang.reduce((a,b) => a + b.belumterbayar, 0) + autoDebts.reduce((a,b) => a + b.belumterbayar, 0);
+            
+            // Rough aggregate cash balance calculation logic
+            let totalKeuangan = 2500000 + db.penjualan.reduce((a,b) => a + (b.ket === 'Lunas' ? b.harga : 0), 0);
+
+            document.getElementById('cardKeuntungan').innerText = formatIDR(totalKeuntungan);
+            document.getElementById('cardKeuangan').innerText = formatIDR(totalKeuangan);
+            document.getElementById('cardUtang').innerText = formatIDR(totalUtang);
+
+            renderTable();
+        }
+
+        function addDataPenjualan() {
+            const row = {
+                no: db.penjualan.length + 1,
+                tanggal: document.getElementById('s2_tanggal').value || new Date().toISOString().split('T')[0],
+                nama: document.getElementById('s2_nama').value || "Umum",
+                id: document.getElementById('s2_id').value || "-",
+                jenis: document.getElementById('s2_jenis').value || "Lainnya",
+                harga: parseFloat(document.getElementById('s2_harga').value) || 0,
+                untung: parseFloat(document.getElementById('s2_untung').value) || 0,
+                saldoawal: parseFloat(document.getElementById('s2_saldoawal').value) || 0,
+                ket: document.getElementById('s2_ket').value
+            };
+            db.penjualan.push(row);
+            refreshAll();
+            alert("Data penjualan sukses dicatat ke Sheet 2!");
+        }
+
+        function addDataDebitKredit() {
+            const row = {
+                no: db.debitKredit.length + 1,
+                tanggal: document.getElementById('s3_tanggal').value || new Date().toISOString().split('T')[0],
+                up_kurang: parseFloat(document.getElementById('s3_up_kurang').value) || 0,
+                up_tambah: parseFloat(document.getElementById('s3_up_tambah').value) || 0,
+                ap_kurang: parseFloat(document.getElementById('s3_ap_kurang').value) || 0,
+                ap_tambah: parseFloat(document.getElementById('s3_ap_tambah').value) || 0,
+                rk_kurang: parseFloat(document.getElementById('s3_rk_kurang').value) || 0,
+                rk_tambah: parseFloat(document.getElementById('s3_rk_tambah').value) || 0
+            };
+            db.debitKredit.push(row);
+            refreshAll();
+            alert("Data mutasi keuangan dicatat ke Sheet 3!");
+        }
+
+        function addDataUtangManual() {
+            const row = {
+                no: db.daftarUtang.length + 1,
+                nama: document.getElementById('s4_nama').value || "Tanpa Nama",
+                jenis: document.getElementById('s4_jenis').value || "Manual",
+                harga: parseFloat(document.getElementById('s4_harga').value) || 0,
+                belumterbayar: parseFloat(document.getElementById('s4_belumterbayar').value) || 0
+            };
+            db.daftarUtang.push(row);
+            refreshAll();
+            alert("Utang manual dicatat ke Sheet 4!");
+        }
+
+        function renderTable() {
+            const head = document.getElementById('tableHeader');
+            const body = document.getElementById('tableBody');
+            body.innerHTML = '';
+
+            if (currentTab === 2) {
+                head.innerHTML = `
+                    <tr>
+                        <th class="p-3">No</th><th class="p-3">Tanggal</th><th class="p-3">Nama</th>
+                        <th class="p-3">No. HP/Meteran/ID</th><th class="p-3">Jenis</th><th class="p-3">Harga</th>
+                        <th class="p-3">Untung Didapat</th><th class="p-3">Ket.</th><th class="p-3">Saldo Awal</th><th class="p-3 text-center">Aksi</th>
+                    </tr>`;
+                db.penjualan.forEach((x, i) => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-gray-800/50";
+                    tr.innerHTML = `
+                        <td class="p-3">${x.no}</td><td>${x.tanggal}</td><td class="font-medium text-white">${x.nama}</td>
+                        <td>${x.id}</td><td>${x.jenis}</td><td class="text-emerald-400 font-semibold">${formatIDR(x.harga)}</td>
+                        <td class="text-blue-400">${formatIDR(x.untung)}</td>
+                        <td><span class="px-2 py-0.5 rounded ${x.ket==='Lunas'?'bg-emerald-500/10 text-emerald-400':'bg-red-500/10 text-red-400'}">${x.ket}</span></td>
+                        <td>${formatIDR(x.saldoawal)}</td>
+                        <td class="p-3 text-center space-x-2">
+                            <button onclick="openEdit(2, ${i})" class="text-blue-400 hover:text-blue-300"><i class="fa-solid fa-edit"></i></button>
+                            <button onclick="deleteRow(2, ${i})" class="text-red-400 hover:text-red-300"><i class="fa-solid fa-trash"></i></button>
+                        </td>`;
+                    body.appendChild(tr);
+                });
+            } 
+            else if (currentTab === 3) {
+                head.innerHTML = `
+                    <tr>
+                        <th class="p-3">No</th><th class="p-3">Tanggal</th>
+                        <th class="p-3">Uang Fisik (-)</th><th class="p-3">Uang Fisik (+)</th>
+                        <th class="p-3">Agen Pulsa (-)</th><th class="p-3">Agen Pulsa (+)</th>
+                        <th class="p-3">Rekening BRI (-)</th><th class="p-3">Rekening BRI (+)</th><th class="p-3 text-center">Aksi</th>
+                    </tr>`;
+                db.debitKredit.forEach((x, i) => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-gray-800/50";
+                    tr.innerHTML = `
+                        <td class="p-3">${x.no}</td><td>${x.tanggal}</td>
+                        <td class="text-red-400">${formatIDR(x.up_kurang)}</td><td class="text-emerald-400">${formatIDR(x.up_tambah)}</td>
+                        <td class="text-red-400">${formatIDR(x.ap_kurang)}</td><td class="text-emerald-400">${formatIDR(x.ap_tambah)}</td>
+                        <td class="text-red-400">${formatIDR(x.rk_kurang)}</td><td class="text-emerald-400">${formatIDR(x.rk_tambah)}</td>
+                        <td class="p-3 text-center space-x-2">
+                            <button onclick="openEdit(3, ${i})" class="text-blue-400 hover:text-blue-300"><i class="fa-solid fa-edit"></i></button>
+                            <button onclick="deleteRow(3, ${i})" class="text-red-400 hover:text-red-300"><i class="fa-solid fa-trash"></i></button>
+                        </td>`;
+                    body.appendChild(tr);
+                });
+            }
+            else if (currentTab === 4) {
+                head.innerHTML = `
+                    <tr>
+                        <th class="p-3">No</th><th class="p-3">Nama</th><th class="p-3">Jenis</th>
+                        <th class="p-3">Harga</th><th class="p-3">Belum Terbayar</th><th class="p-3 text-center">Aksi</th>
+                    </tr>`;
+                
+                // Combine manual and automatic debt sources
+                let indexNum = 1;
+                db.daftarUtang.forEach((x, i) => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-gray-800/50";
+                    tr.innerHTML = `
+                        <td class="p-3">${indexNum++}</td><td class="text-white">${x.nama}</td><td>${x.jenis}</td>
+                        <td>${formatIDR(x.harga)}</td><td class="text-red-400 font-bold">${formatIDR(x.belumterbayar)}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="openEdit(4, ${i})" class="text-blue-400 hover:text-blue-300"><i class="fa-solid fa-edit"></i></button>
+                            <button onclick="deleteRow(4, ${i})" class="text-red-400 hover:text-red-300"><i class="fa-solid fa-trash"></i></button>
+                        </td>`;
+                    body.appendChild(tr);
+                });
+
+                db.penjualan.filter(x => x.ket === "Belum Lunas").forEach((x) => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-gray-800/50 opacity-75 italic";
+                    tr.innerHTML = `
+                        <td class="p-3">${indexNum++}</td><td class="text-white">${x.nama} (Auto)</td><td>${x.jenis}</td>
+                        <td>${formatIDR(x.harga)}</td><td class="text-amber-400 font-bold">${formatIDR(x.harga)}</td>
+                        <td class="p-3 text-center text-xs text-gray-500">Ubah status di Penjualan</td>`;
+                    body.appendChild(tr);
+                });
+            }
+        }
+
+        function deleteRow(sheet, idx) {
+            if(confirm("Yakin hapus data baris ini?")) {
+                if(sheet === 2) db.penjualan.splice(idx, 1);
+                if(sheet === 3) db.debitKredit.splice(idx, 1);
+                if(sheet === 4) db.daftarUtang.splice(idx, 1);
+                refreshAll();
+            }
+        }
+
+        function openEdit(sheet, idx) {
+            activeEdit = { sheet, idx };
+            const con = document.getElementById('modalContainer');
+            con.innerHTML = '';
+
+            if(sheet === 2) {
+                const data = db.penjualan[idx];
+                con.innerHTML = `
+                    <div><label class="block mb-1 text-gray-400">Nama</label><input type="text" id="m_s2_nama" value="${data.nama}" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white"></div>
+                    <div><label class="block mb-1 text-gray-400">Harga</label><input type="number" id="m_s2_harga" value="${data.harga}" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white"></div>
+                    <div><label class="block mb-1 text-gray-400">Keterangan</label>
+                        <select id="m_s2_ket" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white">
+                            <option value="Lunas" ${data.ket==='Lunas'?'selected':''}>Lunas</option>
+                            <option value="Belum Lunas" ${data.ket==='Belum Lunas'?'selected':''}>Belum Lunas</option>
+                        </select>
+                    </div>`;
+            } else if(sheet === 3) {
+                const data = db.debitKredit[idx];
+                con.innerHTML = `
+                    <div><label class="block mb-1 text-gray-400">Fisik Tambah (+)</label><input type="number" id="m_s3_tambah" value="${data.up_tambah}" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white"></div>`;
+            } else if(sheet === 4) {
+                const data = db.daftarUtang[idx];
+                con.innerHTML = `
+                    <div><label class="block mb-1 text-gray-400">Belum Terbayar</label><input type="number" id="m_s4_belum" value="${data.belumterbayar}" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white"></div>`;
+            }
+
+            document.getElementById('updateModal').classList.remove('hidden');
+            document.getElementById('updateModal').classList.add('flex');
+        }
+
+        function closeModal() {
+            document.getElementById('updateModal').classList.add('hidden');
+            document.getElementById('updateModal').classList.remove('flex');
+        }
+
+        function saveModalChanges() {
+            const { sheet, idx } = activeEdit;
+            if(sheet === 2) {
+                db.penjualan[idx].nama = document.getElementById('m_s2_nama').value;
+                db.penjualan[idx].harga = parseFloat(document.getElementById('m_s2_harga').value) || 0;
+                db.penjualan[idx].ket = document.getElementById('m_s2_ket').value;
+            } else if(sheet === 3) {
+                db.debitKredit[idx].up_tambah = parseFloat(document.getElementById('m_s3_tambah').value) || 0;
+            } else if(sheet === 4) {
+                db.daftarUtang[idx].belumterbayar = parseFloat(document.getElementById('m_s4_belum').value) || 0;
+            }
+            closeModal();
+            refreshAll();
+        }
+
+        function exportToExcel() {
+            const wb = XLSX.utils.book_new();
+
+            // Prepare matching headers directly to standard structures mapping image
+            const ws2 = XLSX.utils.json_to_sheet(db.penjualan);
+            XLSX.utils.book_append_sheet(wb, ws2, "Penjualan");
+
+            const ws3 = XLSX.utils.json_to_sheet(db.debitKredit);
+            XLSX.utils.book_append_sheet(wb, ws3, "Debit_Kredit");
+
+            const ws4 = XLSX.utils.json_to_sheet(db.daftarUtang);
+            XLSX.utils.book_append_sheet(wb, ws4, "Daftar_Utang");
+
+            XLSX.writeFile(wb, "Kontrol_Keuangan_Agen.xlsx");
+        }
+    </script>
+</body>
+</html>
