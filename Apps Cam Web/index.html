@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Webcam iOS</title>
+    
+    <!-- CDN Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Container Utama: Menggunakan vh-100 dan d-flex agar responsif di seluruh ukuran layar -->
+    <div class="camera-container position-relative vh-100 w-100 d-flex flex-column justify-content-between" id="cameraView">
+
+        <!-- Live Viewfinder -->
+        <video id="webcam" autoplay playsinline class="position-absolute top-0 start-0 w-100 h-100 filter-none"></video>
+        <canvas id="canvas" class="d-none"></canvas>
+        
+        <!-- Grid Overlay -->
+        <div id="gridOverlay" class="grid-overlay position-absolute top-0 start-0 w-100 h-100 d-none">
+            <div class="grid-line"></div>
+            <div class="grid-line"></div>
+            <div class="grid-line"></div>
+            <div class="grid-line"></div>
+        </div>
+
+        <!-- Flash Effect -->
+        <div id="flashScreen" class="flash-screen position-absolute top-0 start-0 w-100 h-100 d-none"></div>
+
+        <!-- Top Bar Control -->
+        <div class="top-bar position-relative z-3 d-flex justify-content-around align-items-center p-3">
+            <button class="btn btn-dark rounded-circle icon-btn" id="flashBtn" title="Flash/Lampu">
+                <i class="fa-solid fa-bolt-slash"></i>
+            </button>
+            <button class="btn btn-dark rounded-circle icon-btn position-relative" id="timerBtn" title="Timer">
+                <i class="fa-solid fa-clock"></i> <span id="badge" class="badge bg-warning text-dark position-absolute top-100 start-50 translate-middle rounded-pill">Off</span>
+            </button>
+            <button class="btn btn-dark rounded-circle icon-btn" id="gridBtn" title="Grid Lines">
+                <i class="fa-solid fa-border-all"></i>
+            </button>
+            <button class="btn btn-dark rounded-circle icon-btn" id="filterBtn" title="Filter Efek">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </button>
+        </div>
+
+        <!-- Countdown Display -->
+        <div id="timerCountdown" class="timer-display hidden">3</div>
+
+        <!-- Toast Notification -->
+        <div id="statusToast" class="toast position-fixed top-0 start-50 translate-middle-x mt-3 bg-dark text-white border border-secondary px-3 py-2 rounded-pill z-3 d-none">Mengunggah ke Database...</div>
+
+        <!-- Bottom Controls -->
+        <div class="bottom-controls position-relative z-3 pb-4 d-flex flex-column align-items-center gap-3">
+            <!-- Filter Options (Hidden by Default) -->
+            <div id="filterBar" class="filter-bar d-flex gap-2 bg-dark bg-opacity-75 px-3 py-2 rounded-pill d-none">
+                <button onclick="setFilter('none')" class="btn btn-sm text-white filter-opt active">Normal</button>
+                <button onclick="setFilter('mono')" class="btn btn-sm text-white filter-opt">Mono</button>
+                <button onclick="setFilter('sepia')" class="btn btn-sm text-white filter-opt">Warm</button>
+                <button onclick="setFilter('cool')" class="btn btn-sm text-white filter-opt">Cool</button>
+                <button onclick="setFilter('dramatic')" class="btn btn-sm text-white filter-opt">Dramatic</button>
+            </div>
+
+            <!-- Mode Selector -->
+            <div class="mode-selector">
+                <span onclick="setMode('CINEMATIC', this)">CINEMATIC</span>
+                <span onclick="setMode('VIDEO', this)">VIDEO</span>
+                <span onclick="setMode('PHOTO', this)" class="active">PHOTO</span>
+                <span onclick="setMode('PORTRAIT', this)">PORTRAIT</span>
+                <span onclick="setMode('PANO', this)">PANO</span>
+            </div>
+
+            <!-- Shutter & Actions -->
+            <div class="shutter-row w-100 d-flex justify-content-around align-items-center px-4">
+                <!-- Gallery Preview / Modal Opener -->
+                <div class="gallery-preview rounded-3 overflow-hidden border border-secondary" id="galleryBtn">
+                    <img id="lastCaptured" class="w-100 h-100 d-none" style="object-fit: cover;" src="" alt="Preview">
+                </div>
+
+                <!-- Shutter Button -->
+                <button class="shutter-btn rounded-circle bg-transparent border border-4 border-white p-1" id="captureBtn">
+                    <div class="shutter-inner w-100 h-100 bg-white rounded-circle" id="shutterInner"></div>
+                </button>
+
+                <!-- Camera Switcher -->
+                <button class="btn btn-dark rounded-circle icon-btn" id="switchBtn">
+                    <i class="fa-solid fa-rotate"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gallery Preview Modal -->
+    <div id="galleryModal" class="modal-backdrop position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-90 z-3 d-flex justify-content-center align-items-center d-none">
+        <div class="modal-dialog modal-dialog-centered modal-sm w-90">
+            <div class="modal-content bg-dark text-white p-3 rounded-4 border border-secondary position-relative">
+                <span class="close-btn position-absolute top-0 end-0 me-3 mt-1 fs-3 cursor-pointer" id="closeGallery">&times;</span>
+                <img id="fullImagePreview" class="img-fluid rounded-3 mb-3 border border-secondary" src="" alt="Hasil Foto">
+                <div class="modal-actions d-grid gap-2">
+                    <a id="downloadLocalBtn" download="foto_kamera.jpg" class="btn btn-outline-light btn-sm">
+                        <i class="fa-solid fa-download me-1"></i> Simpan Lokal
+                    </a>
+                    <a id="driveUrlBtn" target="_blank" class="btn btn-success btn-sm disabled">
+                        <i class="fa-solid fa-cloud me-1"></i> Buka Gambar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CDN Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none;
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+    overflow: hidden;
+}
+
+.camera-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+#webcam {
+    object-fit: cover;
+    z-index: 1;
+    transition: filter 0.3s ease;
+}
+
+/* Filter Styles */
+.filter-none { filter: none; }
+.filter-mono { filter: grayscale(100%); }
+.filter-sepia { filter: sepia(60%) contrast(110%); }
+.filter-cool { filter: hue-rotate(30deg) saturate(120%); }
+.filter-dramatic { filter: contrast(140%) brightness(90%); }
+
+.hidden { display: none !important; }
+
+/* Grid Overlay */
+.grid-overlay {
+    z-index: 2;
+    pointer-events: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+}
+.grid-line {
+    border: 0.5px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Flash Animation */
+.flash-screen {
+    background: white;
+    z-index: 30;
+}
+
+/* Top Bar */
+.top-bar {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    justify-content: space-around;
+    padding: 20px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+}
+
+.icon-btn {
+width: 44px;
+    height: 44px;
+    background: rgba(0, 0, 0, 0.4) !important;
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-badge {
+    position: absolute;
+    bottom: -2px;
+    font-size: 9px;
+    background: #ffcc00;
+    color: #000;
+    padding: 1px 4px;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+/* Timer Countdown */
+.timer-display {
+    position: absolute;
+    top: 40%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 96px;
+    color: #ffcc00;
+    font-weight: bold;
+    z-index: 20;
+    text-shadow: 0 0 20px rgba(0,0,0,0.8);
+}
+
+/* Toast */
+.toast {
+    position: absolute;
+    top: 80px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 25;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* Bottom Controls */
+.bottom-controls {
+    position: relative;
+    z-index: 10;
+    padding-bottom: 30px;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.filter-bar {
+    display: flex;
+    gap: 10px;
+    background: rgba(0,0,0,0.5);
+    padding: 6px 12px;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+}
+.filter-opt {
+    background: transparent;
+    border: none;
+    color: #ccc;
+    font-size: 12px;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+.filter-opt.active {
+    color: #ffcc00;
+    font-weight: bold;
+}
+
+.mode-selector {
+    display: flex;
+    gap: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #8e8e93;
+    letter-spacing: 1px;
+}
+.mode-selector span { cursor: pointer; }
+.mode-selector .active { color: #ffcc00; }
+
+.shutter-row {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 20px;
+}
+
+.shutter-btn {
+    width: 75px;
+    height: 75px;
+}
+.shutter-inner {
+    transition: all 0.2s ease;
+}
+
+/* Video Record State */
+.shutter-btn.recording .shutter-inner {
+    background: #dc3545 !important;
+    border-radius: 8px !important;
+    transform: scale(0.6);
+}
+
+.gallery-preview {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+}
+.gallery-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Modal Preview */
+.modal {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.9);
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.modal-content {
+    width: 90%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    position: relative;
+}
+.modal-content img { width: 100%; border-radius: 12px; }
+.close-btn {
+    position: absolute;
+    top: -40px; right: 0;
+    color: #fff; font-size: 32px; cursor: pointer;
+}
+.modal-actions { display: flex; gap: 10px; }
+.btn-action {
+    background: #333; color: #fff;
+    padding: 10px 15px; border-radius: 8px;
+    text-decoration: none; font-size: 13px;
+    display: flex; align-items: center; gap: 6px;
+}
+.drive-btn { background: #0f9d58; }
+.drive-btn.disabled { opacity: 0.5; pointer-events: none; }
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+/* Filter Styles */
+.filter-none { filter: none; }
+.filter-mono { filter: grayscale(100%); }
+.filter-sepia { filter: sepia(60%) contrast(110%); }
+.filter-cool { filter: hue-rotate(30deg) saturate(120%); }
+.filter-dramatic { filter: contrast(140%) brightness(90%); }
